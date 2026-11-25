@@ -26,6 +26,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/toast";
+import { signIn } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -106,6 +108,7 @@ export default function SignInForm() {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const timerRef = useRef<number | null>(null);
+  const router = useRouter()
 
   useEffect(() => {
     return () => {
@@ -146,7 +149,7 @@ export default function SignInForm() {
     return next;
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const next = validate();
@@ -163,10 +166,32 @@ export default function SignInForm() {
       input?.focus();
       return;
     }
+    const signInData = {
+      email,
+      password
+    }
+    
 
-    // Design-only: simulate the request so the loading state is reviewable,
-    // then preview one of the account messages. Replace with a call to the
-    // auth API and map its error responses onto `accountError`.
+    try {
+      const { data, error } = await signIn.email({
+        ...signInData,
+      });
+      if (error) {
+        throw new Error("Sign in failed");
+      }
+      if (data) {
+        toast.add({
+          type: "success",
+          title: "Welcome to EduConnect Family",
+          description: "Sign-in successfull.Now explore our courses",
+        });
+        router.refresh()
+        router.push("/");
+      }
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : error);
+      throw new Error("Something is wrong!");
+    }
     setIsSubmitting(true);
     if (timerRef.current !== null) window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => {
@@ -238,9 +263,13 @@ export default function SignInForm() {
                 autoComplete="email"
                 placeholder="jane@example.com"
                 value={email}
-                onChange={(event) => handleFieldChange("email", event.target.value)}
+                onChange={(event) =>
+                  handleFieldChange("email", event.target.value)
+                }
                 aria-invalid={errors.email ? true : undefined}
-                aria-describedby={errors.email ? "signin-email-error" : undefined}
+                aria-describedby={
+                  errors.email ? "signin-email-error" : undefined
+                }
               />
               {errors.email && (
                 <FieldError id="signin-email-error">{errors.email}</FieldError>
@@ -269,9 +298,7 @@ export default function SignInForm() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((visible) => !visible)}
-                  aria-label={
-                    showPassword ? "Hide password" : "Show password"
-                  }
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                   className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                 >
                   {showPassword ? (
@@ -295,7 +322,7 @@ export default function SignInForm() {
             type="submit"
             variant="gradient"
             size="lg"
-            className="w-full"
+            className="w-full cursor-pointer"
             disabled={isSubmitting}
           >
             {isSubmitting && <Loader2Icon className="animate-spin" />}
@@ -313,7 +340,7 @@ export default function SignInForm() {
             type="button"
             variant="outline"
             size="lg"
-            className="w-full"
+            className="w-full cursor-pointer"
             onClick={handleGoogleSignIn}
             disabled={isSubmitting}
           >
@@ -325,7 +352,7 @@ export default function SignInForm() {
             Don&apos;t have an account?{" "}
             <Link
               href="/sign-up"
-              className="font-medium text-[var(--color-primary)] underline-offset-4 hover:underline"
+              className="font-medium text-(--color-primary) underline-offset-4 hover:underline"
             >
               Sign Up
             </Link>

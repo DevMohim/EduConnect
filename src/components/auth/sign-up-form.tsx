@@ -23,6 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { signUp } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -86,6 +87,7 @@ export default function SignUpForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const router = useRouter()
 
   const passwordChecks = passwordRules.map((rule) => ({
     ...rule,
@@ -161,11 +163,13 @@ export default function SignUpForm() {
       }
       if(data){
         toast.add({
-          type: "info",
-          title: "Welcome to EduConnect Family",
+          type: "success",
+          title: "Account created! Sign in to explore courses",
           description:
             "Sign-up successfull.Now login and explore our courses",
         });
+        router.refresh()
+        router.push('/sign-in')
       }
     } catch (error) {
       console.error(error instanceof Error ? error.message : error);

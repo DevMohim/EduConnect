@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { MenuIcon } from "lucide-react";
 
@@ -15,6 +15,18 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { signOut, useSession } from "@/lib/auth-client";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "../ui/toast";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -33,7 +45,7 @@ function TextLogo({ className }: { className?: string }) {
         className
       )}
     >
-      <span className="bg-gradient-to-r from-brand-from to-brand-to bg-clip-text text-transparent">
+      <span className="bg-linear-to-r from-brand-from to-brand-to bg-clip-text text-transparent">
         Edu
       </span>
       <span className="text-foreground">Connect</span>
@@ -46,6 +58,27 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const closeMenu = () => setMenuOpen(false);
+  const router = useRouter()
+
+  const {data: session} = useSession()
+  const user = session?.user
+
+  const handleSignOut = async ()=>{
+    try {
+      await signOut()
+      toast.add({
+        type: "success",
+        title: "Logged out successfully. See you again!",
+        description:
+          "You have been securely logged out of your account. See you again soon!",
+      });
+      router.push('/sign-in')
+      
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : error);
+      throw new Error("Something went wrong!");
+    }
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background">
@@ -73,14 +106,14 @@ export default function Navbar() {
                   "relative rounded-md px-3 py-2 text-sm font-medium transition-colors",
                   active
                     ? "text-brand-from"
-                    : "text-foreground/70 hover:text-brand-from"
+                    : "text-foreground/70 hover:text-brand-from",
                 )}
               >
                 {link.label}
                 {active && (
                   <span
                     aria-hidden="true"
-                    className="absolute inset-x-2 -bottom-0.5 h-0.5 rounded-full bg-gradient-to-r from-brand-from to-brand-to"
+                    className="absolute inset-x-2 -bottom-0.5 h-0.5 rounded-full bg-linear-to-r from-brand-from to-brand-to"
                   />
                 )}
               </Link>
@@ -90,21 +123,69 @@ export default function Navbar() {
 
         {/* Right: actions (desktop) */}
         <div className="hidden items-center gap-2 md:flex md:justify-self-end">
-          <Link
-            href="/become-instructor"
-            className={buttonVariants({ variant: "gradient-outline" })}
-          >
-            Become an Instructor
-          </Link>
-          <Link
-            href="/sign-in"
-            className={buttonVariants({ variant: "gradient-outline" })}
-          >
-            Sign In
-          </Link>
-          <Link href="/sign-up" className={buttonVariants({ variant: "gradient" })}>
-            Sign Up
-          </Link>
+          {user ? (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-full cursor-pointer"
+                    >
+                      <Avatar>
+                        <AvatarImage
+                          src={user?.image as undefined}
+                          alt="shadcn"
+                        />
+                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  }
+                />
+                <DropdownMenuContent className="w-32">
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem>
+                      <Link href={`dashboard`} className="text-black">
+                        Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Link href={`dashboard`} className="text-black">
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Link href={`dashboard`} className="text-black">
+                        Settings
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem variant="destructive" className='cursor-pointer' onClick={handleSignOut}>
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/sign-in"
+                className={buttonVariants({ variant: "gradient-outline" })}
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/sign-up"
+                className={buttonVariants({ variant: "gradient" })}
+              >
+                Sign Up
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile menu */}
@@ -131,11 +212,7 @@ export default function Navbar() {
               <SheetDescription className="sr-only">
                 Browse EduConnect pages and account links.
               </SheetDescription>
-              <Link
-                href="/"
-                aria-label="EduConnect home"
-                onClick={closeMenu}
-              >
+              <Link href="/" aria-label="EduConnect home" onClick={closeMenu}>
                 <TextLogo />
               </Link>
             </SheetHeader>
@@ -153,7 +230,7 @@ export default function Navbar() {
                       "rounded-md px-3 py-2.5 text-base font-medium transition-colors",
                       active
                         ? "bg-brand-from/5 text-brand-from"
-                        : "text-foreground hover:bg-muted hover:text-brand-from"
+                        : "text-foreground hover:bg-muted hover:text-brand-from",
                     )}
                   >
                     {link.label}
